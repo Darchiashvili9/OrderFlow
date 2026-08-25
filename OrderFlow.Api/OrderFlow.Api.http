@@ -1,0 +1,23 @@
+@OrderFlow.Api_HostAddress = http://localhost:5058/api
+
+###
+
+
+POST {{OrderFlow.Api_HostAddress}}/products/
+Content-Type: application/json
+Accept: application/json
+{
+  "name": "Mechanical Keyboard",
+  "stock": 20,
+  "price": 89.99
+}
+
+
+###
+GET {{OrderFlow.Api_HostAddress}}/products/1
+Accept: application/json
+
+
+##
+GET {{OrderFlow.Api_HostAddress}}/weatherforecast/
+Accept: application/json
