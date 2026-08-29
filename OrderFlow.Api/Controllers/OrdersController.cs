@@ -15,14 +15,42 @@ namespace OrderFlow.Api.Controllers
             _service = service;
         }
 
+        [HttpPost]
         public async Task<ActionResult<OrderDto>> CreateOrder(CreateOrderDto dto)
         {
             var order = await _service.CreateAsync(dto.CustomerId, dto.Items);
 
-            OrderDto oDto = new(
-                order.Id, order.CustomerId, order.Status, order.OrderItems.Select(p => productId)
+            var itemDtos = order.OrderItems
+                .Select(item => new OrderItemDto
+                {
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice
+                }).ToList();
 
-                );
+            return CreatedAtAction(
+                nameof(GetOrderById),
+                new { id = order.Id },
+                new OrderDto(order.Id, order.CustomerId, order.Status.ToString(),
+                itemDtos));
+        }
+
+        [HttpGet("{iD}")]
+        public async Task<ActionResult<OrderDto>> GetOrderById(int id)
+        {
+            var order = await _service.GetByIdAsync(id);
+            if (order is null)
+                return NotFound();
+
+            var orderItems = order.OrderItems.Select(
+                  items => new OrderItemDto
+                  {
+                      ProductId = items.ProductId,
+                      Quantity = items.Quantity,
+                      UnitPrice = items.UnitPrice
+                  }).ToList();
+
+            return Ok(new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), orderItems));
         }
     }
 }

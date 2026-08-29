@@ -33,7 +33,7 @@ namespace OrderFlow.Api.Controllers
                 return NotFound();
 
             ProductDto product = new(prod.Id, prod.ProductName, prod.Stock, prod.ProductPrice);
-            return product;
+            return Ok(product);
         }
 
         [HttpGet]
@@ -41,7 +41,7 @@ namespace OrderFlow.Api.Controllers
         {
             var list = await _service.GetAllAsync();
             List<ProductDto> dtoList = list.Select(o => new ProductDto(o.Id, o.ProductName, o.Stock, o.ProductPrice)).ToList();
-            return dtoList;
+            return Ok(dtoList);
         }
 
         [HttpPut("{id}/price")]
