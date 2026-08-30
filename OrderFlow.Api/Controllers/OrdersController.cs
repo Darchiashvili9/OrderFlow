@@ -21,12 +21,10 @@ namespace OrderFlow.Api.Controllers
             var order = await _service.CreateAsync(dto.CustomerId, dto.Items);
 
             var itemDtos = order.OrderItems
-                .Select(item => new OrderItemDto
-                {
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice
-                }).ToList();
+                .Select(item => new OrderItemDto(
+                    item.ProductId,
+                    item.Quantity,
+                    item.UnitPrice)).ToList();
 
             return CreatedAtAction(
                 nameof(GetOrderById),
@@ -35,7 +33,7 @@ namespace OrderFlow.Api.Controllers
                 itemDtos));
         }
 
-        [HttpGet("{iD}")]
+        [HttpGet("{id}")]
         public async Task<ActionResult<OrderDto>> GetOrderById(int id)
         {
             var order = await _service.GetByIdAsync(id);
@@ -43,14 +41,30 @@ namespace OrderFlow.Api.Controllers
                 return NotFound();
 
             var orderItems = order.OrderItems.Select(
-                  items => new OrderItemDto
-                  {
-                      ProductId = items.ProductId,
-                      Quantity = items.Quantity,
-                      UnitPrice = items.UnitPrice
-                  }).ToList();
+                  items => new OrderItemDto(
+                      items.ProductId,
+                      items.Quantity,
+                      items.UnitPrice)).ToList();
 
             return Ok(new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), orderItems));
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<OrderDto>>> GetAll()
+        {
+            var list = await _service.GetAllAsync();
+            var orderDto = list.Select(
+                o => new OrderDto(
+                    o.Id,
+                    o.CustomerId,
+                    o.Status.ToString(),
+                    o.OrderItems.Select(
+                        item => new OrderItemDto(
+                            item.ProductId,
+                            item.Quantity,
+                            item.UnitPrice)).ToList())).ToList();
+
+            return Ok(orderDto);
         }
     }
 }

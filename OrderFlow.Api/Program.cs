@@ -25,6 +25,7 @@ namespace OrderFlow.Api
             //DI
             builder.Services.AddScoped<ProductService>();
             builder.Services.AddScoped<OrderService>();
+            builder.Services.AddScoped<CustomerService>();
 
 
             builder.Services.AddEndpointsApiExplorer();

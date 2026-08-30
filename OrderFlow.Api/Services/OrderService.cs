@@ -47,5 +47,13 @@ namespace OrderFlow.Api.Services
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.Id == orderId);
         }
+
+        public async Task<List<Order>> GetAllAsync()
+        {
+            return await _context.Orders
+                .Include(items => items.OrderItems)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }
