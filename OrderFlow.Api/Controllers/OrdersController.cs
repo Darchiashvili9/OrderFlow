@@ -66,5 +66,26 @@ namespace OrderFlow.Api.Controllers
 
             return Ok(orderDto);
         }
+
+        [HttpPut("{id}/complete")]
+        public async Task<ActionResult> CompleteOrder(int id)
+        {
+            var order = await _service.CompleteAsync(id);
+            if (order is null)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        [HttpPut("{id}/cancel")]
+        public async Task<ActionResult> CancelOrder(int id)
+        {
+            var order = await _service.CancelAsync(id);
+
+            if (order is null)
+                return NotFound();
+
+            return NoContent();
+        }
     }
 }

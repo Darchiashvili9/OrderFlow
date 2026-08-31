@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using OrderFlow.Api.Data;
 using OrderFlow.Api.DTOs;
 using OrderFlow.Api.Models;
@@ -54,6 +55,35 @@ namespace OrderFlow.Api.Services
                 .Include(items => items.OrderItems)
                 .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<Order?> CompleteAsync(int orderId)
+        {
+            var order = await _context.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order is null)
+                return null;
+
+            order.Complete();
+            await _context.SaveChangesAsync();
+
+            return order;
+        }
+
+        public async Task<Order?> CancelAsync(int orderId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .ThenInclude(p => p.Product)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order is null)
+                return null;
+
+            order.Cancel();
+            await _context.SaveChangesAsync();
+
+            return order;
         }
     }
 }
