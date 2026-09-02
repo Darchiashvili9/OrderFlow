@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OrderFlow.Api.Data;
+using OrderFlow.Api.Exceptions;
 using OrderFlow.Api.Services;
 
 namespace OrderFlow.Api
@@ -28,8 +29,13 @@ namespace OrderFlow.Api
             builder.Services.AddScoped<CustomerService>();
 
 
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddProblemDetails();
+
+
 
             var app = builder.Build();
 
@@ -42,11 +48,9 @@ namespace OrderFlow.Api
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-
-
-
                 app.MapOpenApi();
             }
+            app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
 
@@ -54,6 +58,7 @@ namespace OrderFlow.Api
 
 
             app.MapControllers();
+
 
             app.Run();
         }

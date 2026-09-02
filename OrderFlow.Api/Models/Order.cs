@@ -1,4 +1,6 @@
-﻿namespace OrderFlow.Api.Models
+﻿using OrderFlow.Api.Exceptions;
+
+namespace OrderFlow.Api.Models
 {
     public class Order
     {
@@ -39,7 +41,7 @@
         public void Cancel()
         {
             if (Status == OrderStatus.Canceled)
-                throw new InvalidOperationException("it is already Canceled");
+                throw new DomainException("it is already Canceled");
 
             if (this.Status != OrderStatus.Done)
             {
@@ -50,21 +52,21 @@
                 this.Status = OrderStatus.Canceled;
             }
 
-            else throw new InvalidOperationException("order is already completed, cant be canceled");
+            else throw new DomainException("order is already completed, cant be canceled");
         }
 
         public void Complete()
         {
             if (Status == OrderStatus.Done)
-                throw new InvalidOperationException("it is already completed");
+                throw new DomainException("it is already completed");
 
             if (OrderItems.Count == 0)
-                throw new InvalidOperationException("you need at least one product for order");
+                throw new DomainException("you need at least one product for order");
 
             if (Status != OrderStatus.Canceled)
                 Status = OrderStatus.Done;
 
-            else throw new InvalidOperationException("order is already canceled, cant be completed you need new order");
+            else throw new DomainException("order is already canceled, cant be completed you need new order");
         }
     }
 }

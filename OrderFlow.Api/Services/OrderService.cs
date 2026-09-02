@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrderFlow.Api.Data;
 using OrderFlow.Api.DTOs;
+using OrderFlow.Api.Exceptions;
 using OrderFlow.Api.Models;
 
 namespace OrderFlow.Api.Services
@@ -28,7 +29,7 @@ namespace OrderFlow.Api.Services
             var products = await _context.Products.Where(prod => productIds.Contains(prod.Id)).ToListAsync();
 
             if (productIds.Count != products.Count)
-                throw new InvalidOperationException("product cant be found");
+                throw new NotFoundException("One or more products were not found");
 
             foreach (var item in list)
             {
