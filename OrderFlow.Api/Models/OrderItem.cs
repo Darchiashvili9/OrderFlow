@@ -1,4 +1,6 @@
-﻿namespace OrderFlow.Api.Models
+﻿using OrderFlow.Api.Exceptions;
+
+namespace OrderFlow.Api.Models
 {
     public class OrderItem
     {
@@ -11,20 +13,17 @@
         public Order Order { get; private set; }
         public Product Product { get; private set; }
 
-        private OrderItem()
-        {
-
-        }
+        private OrderItem() { }
 
         public OrderItem(Product product, int quantity)
         {
             if (product != null)
                 Product = product;
-            else throw new InvalidDataException("product cant be null");
+            else throw new ValidationException("product cant be null");
 
             if (quantity > 0)
                 Quantity = quantity;
-            else throw new InvalidDataException("quantity must be more then 0");
+            else throw new ValidationException("quantity must be more then 0");
 
             UnitPrice = product.ProductPrice;
         }

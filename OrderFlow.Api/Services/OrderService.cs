@@ -20,7 +20,7 @@ namespace OrderFlow.Api.Services
         {
             var customer = await _context.Customers.FindAsync(customerId);
             if (customer is null)
-                throw new InvalidOperationException($"Customer with ID {customerId} was not found.");
+                throw new NotFoundException($"Customer with ID {customerId} was not found.");
 
             Order order = new(customer);
 

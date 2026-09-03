@@ -16,16 +16,18 @@ namespace OrderFlow.Api.Exceptions
             string message;
             switch (exception)
             {
+                case ValidationException:
+                    message = exception.Message;
+                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    break;
                 case DomainException:
                     message = exception.Message;
                     httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
                     break;
-
                 case NotFoundException:
                     message = exception.Message;
                     httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
                     break;
-
                 default:
                     message = "An unexpected error occurred";
                     httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;

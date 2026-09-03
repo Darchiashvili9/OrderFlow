@@ -11,10 +11,7 @@ namespace OrderFlow.Api.Models
         public Customer Customer { get; private set; }
         public List<OrderItem> OrderItems { get; private set; } = new();
 
-        private Order()
-        {
-
-        }
+        private Order() { }
 
         public Order(Customer customer)
         {
@@ -23,19 +20,16 @@ namespace OrderFlow.Api.Models
 
             if (customer != null)
                 this.Customer = customer;
-            else throw new InvalidDataException("customer cant be null");
+            else throw new ValidationException("customer cant be null");
         }
 
         public void AddItem(Product product, int quantity)
         {
             if (product is null)
-                throw new ArgumentNullException("product cant be null");
+                throw new ValidationException("product cant be null");
 
-            else
-            {
-                product.ReduceStock(quantity);
-                OrderItems.Add(new OrderItem(product, quantity));
-            }
+            product.ReduceStock(quantity);
+            OrderItems.Add(new OrderItem(product, quantity));
         }
 
         public void Cancel()
