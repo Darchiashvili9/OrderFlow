@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OrderFlow.Api.Data;
 
@@ -11,9 +12,11 @@ using OrderFlow.Api.Data;
 namespace OrderFlow.Api.Migrations
 {
     [DbContext(typeof(OrderFlowDbContext))]
-    partial class OrderFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260904061309_AddProductRowVersion")]
+    partial class AddProductRowVersion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

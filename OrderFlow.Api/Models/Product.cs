@@ -9,6 +9,7 @@ namespace OrderFlow.Api.Models
         public int Stock { get; private set; }
         public decimal ProductPrice { get; private set; }
         public List<OrderItem> OrderItems { get; private set; } = new();
+        public byte[] RowVersion { get; private set; } = null!;
 
         private Product() { }
         public Product(string name, int stock, decimal price)

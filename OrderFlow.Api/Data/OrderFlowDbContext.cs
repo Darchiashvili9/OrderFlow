@@ -19,13 +19,13 @@ namespace OrderFlow.Api.Data
 
             modelBuilder.Entity<Product>().Property(p => p.ProductPrice).HasPrecision(18, 2);
             modelBuilder.Entity<Product>().Property(p => p.ProductName).HasMaxLength(200);
+            modelBuilder.Entity<Product>().Property(p => p.RowVersion).IsRowVersion();
 
             modelBuilder.Entity<Order>()
                 .HasMany(item => item.OrderItems)
                 .WithOne(order => order.Order)
                 .HasForeignKey(item => item.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
-
 
             modelBuilder.Entity<OrderItem>().Property(o => o.UnitPrice).HasPrecision(18, 2);
             modelBuilder.Entity<OrderItem>()
