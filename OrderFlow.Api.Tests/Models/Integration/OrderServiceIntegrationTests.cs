@@ -9,7 +9,7 @@ namespace OrderFlow.Api.Tests.Models.Integration
     public class OrderServiceIntegrationTests
     {
         [Fact]
-        public async Task Method_Scenario_ExpectedBehavior()
+        public async Task CreateAsync_ValidOrder_CreatesOrder()
         {
             var connectionString = @"Server=(localdb)\MSSQLLocalDB;Database=OrderFlowTestDb;Trusted_Connection=True";
             var optionsBuilder = new DbContextOptionsBuilder<OrderFlowDbContext>();
