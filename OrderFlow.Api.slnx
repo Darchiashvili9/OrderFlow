@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="OrderFlow.Api.Tests/OrderFlow.Api.Tests.csproj" Id="14e43061-e1d4-4af1-8ff5-8132722bde9a" />
   <Project Path="OrderFlow.Api/OrderFlow.Api.csproj" />
 </Solution>
