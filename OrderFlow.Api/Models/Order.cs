@@ -8,7 +8,7 @@ namespace OrderFlow.Api.Models
         public int CustomerId { get; private set; }
         public DateTime OrderDate { get; private set; }
         public OrderStatus Status { get; private set; }
-        public Customer Customer { get; private set; }
+        public Customer Customer { get; private set; } = null!;
         public List<OrderItem> OrderItems { get; private set; } = new();
 
         private Order() { }

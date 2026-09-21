@@ -10,8 +10,8 @@ namespace OrderFlow.Api.Models
         public int OrderId { get; private set; }
         public decimal UnitPrice { get; private set; }
 
-        public Order Order { get; private set; }
-        public Product Product { get; private set; }
+        public Order Order { get; private set; } = null!;
+        public Product Product { get; private set; } = null!;
 
         private OrderItem() { }
 

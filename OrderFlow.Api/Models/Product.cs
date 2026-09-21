@@ -5,7 +5,7 @@ namespace OrderFlow.Api.Models
     public class Product
     {
         public int Id { get; private set; }
-        public string ProductName { get; private set; }
+        public string ProductName { get; private set; } = null!;
         public int Stock { get; private set; }
         public decimal ProductPrice { get; private set; }
         public List<OrderItem> OrderItems { get; private set; } = new();
