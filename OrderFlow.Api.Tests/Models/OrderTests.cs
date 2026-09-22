@@ -19,7 +19,7 @@ namespace OrderFlow.Api.Tests.Models
         [Fact]
         public void CreateOrder_CustomerIsNull_ThrowsValidationException()
         {
-            Assert.Throws<ValidationException>(() => new Order(null));
+            Assert.Throws<ValidationException>(() => new Order(null!));
         }
 
         [Fact]
@@ -66,7 +66,7 @@ namespace OrderFlow.Api.Tests.Models
             Customer customer = new("testCustomer", "The Land", "BW@Deutschland.de");
             Order order = new(customer);
 
-            Assert.Throws<ValidationException>(() => order.AddItem(null, 5));
+            Assert.Throws<ValidationException>(() => order.AddItem(null!, 5));
             Assert.Empty(order.OrderItems);
         }
 

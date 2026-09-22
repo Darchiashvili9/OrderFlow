@@ -19,7 +19,7 @@ namespace OrderFlow.Api.Tests.Models
         [Fact]
         public void CreateOrderItem_ProductIsNull_ThrowsValidationException()
         {
-            Assert.Throws<ValidationException>(() => new OrderItem(null, 5));
+            Assert.Throws<ValidationException>(() => new OrderItem(null!, 5));
         }
 
         [Fact]
