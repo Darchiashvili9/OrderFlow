@@ -15,19 +15,19 @@ namespace OrderFlow.Api.Models
 
         private OrderItem() { }
 
-        public OrderItem(Product product, int quantity)
+        public OrderItem(int productId, decimal unitPrice, int quantity)
         {
-            if (product != null)
-                Product = product;
-            else throw new ValidationException("product cant be null");
+            if (productId > 0)
+                ProductId = productId;
+            else throw new ValidationException("productId cant be 0");
 
             if (quantity > 0)
                 Quantity = quantity;
             else throw new ValidationException("quantity must be more then 0");
 
-            UnitPrice = product.ProductPrice;
+            if (unitPrice > 0)
+                UnitPrice = unitPrice;
+            else throw new ValidationException("price cant be less than 1");
         }
-
-
     }
 }

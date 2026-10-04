@@ -219,10 +219,95 @@ namespace OrderFlow.Api.Tests.Models.Integration
         }
 
         [Fact]
+        public async Task CreateAsync_TwoProductRollback_RollsBackStockQuantities()
+        {
+            int custId;
+            int firstProdId;
+            int secondProdId;
+
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product firstProd = new("testProduct1", 30, 50);
+                Product secondProd = new("testProduct2", 30, 50);
+
+                context.Customers.Add(cust);
+                context.Products.Add(firstProd);
+                context.Products.Add(secondProd);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                firstProdId = firstProd.Id;
+                secondProdId = secondProd.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                List<CreateOrderItemDto> ord = new()
+                {
+                    new CreateOrderItemDto() {ProductId = firstProdId, Quantity = 25},
+                    new CreateOrderItemDto(){ProductId = secondProdId, Quantity = 31}
+                };
+                await Assert.ThrowsAsync<DomainException>(async () => await service.CreateAsync(custId, ord));
+            }
+
+            {
+                using var verificationContext = CreateContext();
+                var firstProduct = await verificationContext.Products.SingleAsync(o => o.Id == firstProdId);
+                var secondProduct = await verificationContext.Products.SingleAsync(o => o.Id == secondProdId);
+                var orders = await verificationContext.Orders.ToListAsync();
+                var orderitems = await verificationContext.OrderItems.ToListAsync();
+
+                Assert.Empty(orders);
+                Assert.Empty(orderitems);
+                Assert.Equal(30, firstProduct.Stock);
+                Assert.Equal(30, secondProduct.Stock);
+            }
+        }
+
+        [Fact]
         public async Task CancelAsync_PendingOrder_RestoresStockAndSetsStatusToCanceled()
         {
+            int custId;
+            int prodId;
+            int orderId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
 
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
 
+                List<CreateOrderItemDto> ord = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = 5},
+                };
+                var order = await service.CreateAsync(custId, ord);
+                orderId = order.Id;
+            }
+
+            {
+                using var completeContext = CreateContext();
+                OrderService service = new(completeContext);
+                await service.CancelAsync(orderId);
+            }
+
+            {
+                using var verificationContext = CreateContext();
+                var order = await verificationContext.Orders.SingleAsync(o => o.Id == orderId);
+                var product = await verificationContext.Products.SingleAsync(p => p.Id == prodId);
+                Assert.Equal(OrderStatus.Canceled, order.Status);
+                Assert.Equal(30, product.Stock);
+            }
         }
     }
 }

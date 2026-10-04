@@ -8,27 +8,29 @@ namespace OrderFlow.Api.Tests.Models
         [Fact]
         public void CreateOrderItem_ValidConstruction_CreatesOrderItem()
         {
-            var product = new Product("testProduct", 10, 7);
-            var item = new OrderItem(product, 5);
+            var item = new OrderItem(10, 7, 5);
 
+            Assert.Equal(10, item.ProductId);
             Assert.Equal(5, item.Quantity);
-            Assert.Equal("testProduct", item.Product.ProductName);
             Assert.Equal(7, item.UnitPrice);
         }
 
         [Fact]
-        public void CreateOrderItem_ProductIsNull_ThrowsValidationException()
+        public void CreateOrderItem_ProductIdIsLessThanOne_ThrowsValidationException()
         {
-            Assert.Throws<ValidationException>(() => new OrderItem(null!, 5));
+            Assert.Throws<ValidationException>(() => new OrderItem(0, 5, 5));
+        }
+
+        [Fact]
+        public void CreateOrderItem_ProductPriceIsLessThanOne_ThrowsValidationException()
+        {
+            Assert.Throws<ValidationException>(() => new OrderItem(1, 0, 5));
         }
 
         [Fact]
         public void CreateOrderItem_QuantityLessThanOne_ThrowsValidationException()
         {
-            var product = new Product("testProduct", 10, 7);
-            Assert.Throws<ValidationException>(() => new OrderItem(product, 0));
-
+            Assert.Throws<ValidationException>(() => new OrderItem(10, 7, 0));
         }
-
     }
 }

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using OrderFlow.Api.Data;
 using OrderFlow.Api.DTOs;
 using OrderFlow.Api.Exceptions;
@@ -35,45 +34,46 @@ namespace OrderFlow.Api.Services
 
             var productIds = groupedList.Select(item => item.ProductId).Distinct().ToList();
 
-            var products = await _context.Products.Where(prod => productIds.Contains(prod.Id)).ToListAsync();
+            var products = await _context.Products
+                .Where(prod => productIds
+                .Contains(prod.Id))
+                .Select(prod => new
+                {
+                    prod.Id,
+                    prod.ProductPrice
+                })
+                .ToListAsync();
 
             if (productIds.Count != products.Count)
                 throw new NotFoundException("One or more products were not found");
 
-            foreach (var item in groupedList)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var product = products.Single(prod => prod.Id == item.ProductId);
-                order.AddItem(product, item.Quantity);
+                foreach (var item in groupedList)
+                {
+                    var product = products.Single(prod => prod.Id == item.ProductId);
+
+                    var affectedRows = await _context.Products
+                        .Where(id => id.Id == item.ProductId && id.Stock >= item.Quantity)
+                        .ExecuteUpdateAsync(prod => prod.SetProperty(p => p.Stock, p => p.Stock - item.Quantity));
+
+                    if (affectedRows == 0)
+                        throw new DomainException("No enough stock to make request");
+
+                    order.AddItem(product.Id, product.ProductPrice, item.Quantity);
+                }
+                _context.Orders.Add(order);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return order;
             }
-
-            _context.Orders.Add(order);
-
-            for (int i = 0; i < 3; i++)
+            catch
             {
-                try
-                {
-                    await _context.SaveChangesAsync();
-                    return order;
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (i == 2)
-                        throw;
-
-                    //reload products
-                    foreach (var product in products)
-                    {
-                        await _context.Entry(product).ReloadAsync();
-                    }
-
-                    foreach (var item in groupedList)
-                    {
-                        var product = products.Single(prod => prod.Id == item.ProductId);
-                        product.ReduceStock(item.Quantity);
-                    }
-                }
+                await transaction.RollbackAsync();
+                throw;
             }
-            throw new InvalidOperationException("Concurrency retry loop exited unexpectedly.");
         }
 
         public async Task<Order?> GetByIdAsync(int orderId)
@@ -109,16 +109,31 @@ namespace OrderFlow.Api.Services
         {
             var order = await _context.Orders
                 .Include(o => o.OrderItems)
-                .ThenInclude(p => p.Product)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order is null)
                 return null;
 
-            order.Cancel();
-            await _context.SaveChangesAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    await _context.Products
+                        .Where(id => id.Id == item.ProductId)
+                        .ExecuteUpdateAsync(prod => prod.SetProperty(p => p.Stock, p => p.Stock + item.Quantity));
+                }
 
-            return order;
+                order.Cancel();
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return order;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

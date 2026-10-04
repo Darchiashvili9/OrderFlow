@@ -23,13 +23,9 @@ namespace OrderFlow.Api.Models
             else throw new ValidationException("customer cant be null");
         }
 
-        public void AddItem(Product product, int quantity)
+        public void AddItem(int productId, decimal unitPrice, int quantity)
         {
-            if (product is null)
-                throw new ValidationException("product cant be null");
-
-            product.ReduceStock(quantity);
-            OrderItems.Add(new OrderItem(product, quantity));
+            OrderItems.Add(new OrderItem(productId, unitPrice, quantity));
         }
 
         public void Cancel()
@@ -38,14 +34,8 @@ namespace OrderFlow.Api.Models
                 throw new DomainException("it is already Canceled");
 
             if (this.Status != OrderStatus.Done)
-            {
-                foreach (var item in OrderItems)
-                {
-                    item.Product.AddStock(item.Quantity);
-                }
                 this.Status = OrderStatus.Canceled;
-            }
-
+            
             else throw new DomainException("order is already completed, cant be canceled");
         }
 
