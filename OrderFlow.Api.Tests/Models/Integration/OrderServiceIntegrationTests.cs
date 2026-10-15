@@ -5,6 +5,7 @@ using OrderFlow.Api.DTOs;
 using OrderFlow.Api.Exceptions;
 using OrderFlow.Api.Models;
 using OrderFlow.Api.Services;
+using System.Security.Cryptography;
 
 namespace OrderFlow.Api.Tests.Models.Integration
 {
@@ -219,6 +220,56 @@ namespace OrderFlow.Api.Tests.Models.Integration
         }
 
         [Fact]
+        public async Task CompleteAsync_AlreadyCanceledOrder_ThrowsDomainException()
+        {
+            int custId;
+            int prodId;
+            int orderId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
+
+            {
+                using var context = CreateContext();
+                OrderService service = new(context);
+                List<CreateOrderItemDto> ord = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = 5},
+                };
+                var order = await service.CreateAsync(custId, ord);
+                orderId = order.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                await service.CancelAsync(orderId);
+            }
+
+            {
+                using var cont = CreateContext();
+                OrderService service = new(cont);
+                await Assert.ThrowsAsync<DomainException>(async () => await service.CompleteAsync(orderId));
+            }
+
+            {
+                using var cont = CreateContext();
+                var order = await cont.Orders.SingleAsync(order => order.Id == orderId);
+                var prod = await cont.Products.SingleAsync(prod => prod.Id == prodId);
+                Assert.Equal(OrderStatus.Canceled, order.Status);
+                Assert.Equal(30, prod.Stock);
+            }
+        }
+
+        [Fact]
         public async Task CreateAsync_TwoProductRollback_RollsBackStockQuantities()
         {
             int custId;
@@ -307,6 +358,185 @@ namespace OrderFlow.Api.Tests.Models.Integration
                 var product = await verificationContext.Products.SingleAsync(p => p.Id == prodId);
                 Assert.Equal(OrderStatus.Canceled, order.Status);
                 Assert.Equal(30, product.Stock);
+            }
+        }
+
+        [Fact]
+        public async Task CancelAsync_AlreadyCompletedOrder_ThrowsDomainException()
+        {
+            int custId;
+            int prodId;
+            int orderId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                List<CreateOrderItemDto> ord = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = 5},
+                };
+                var order = await service.CreateAsync(custId, ord);
+                orderId = order.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                await service.CompleteAsync(orderId);
+            }
+
+            {
+                using var cont = CreateContext();
+                OrderService service = new(cont);
+                await Assert.ThrowsAsync<DomainException>(async () => await service.CancelAsync(orderId));
+            }
+
+            {
+                using var cont = CreateContext();
+                var order = await cont.Orders.SingleAsync(order => order.Id == orderId);
+                var prod = await cont.Products.SingleAsync(prod => prod.Id == prodId);
+                Assert.Equal(OrderStatus.Done, order.Status);
+                Assert.Equal(25, prod.Stock);
+            }
+        }
+
+        [Fact]
+        public async Task CancelAsync_TwoConcurrentRequests_RestoresStockOnlyOnce()
+        {
+            int custId;
+            int prodId;
+            int orderId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                List<CreateOrderItemDto> ord = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = 5},
+                };
+                var order = await service.CreateAsync(custId, ord);
+                orderId = order.Id;
+            }
+
+            var task1 = Task.Run(async () =>
+            {
+                {
+                    using var actingContext = CreateContext();
+                    OrderService service = new(actingContext);
+
+                    await service.CancelAsync(orderId);
+                }
+            });
+
+            var task2 = Task.Run(async () =>
+            {
+                {
+                    using var actingContext = CreateContext();
+                    OrderService service = new(actingContext);
+
+                    await service.CancelAsync(orderId);
+                }
+            });
+
+            await Assert.ThrowsAsync<DomainException>(async () => await Task.WhenAll(task1, task2));
+
+            {
+                using var cont = CreateContext();
+                var order = await cont.Orders.SingleAsync(order => order.Id == orderId);
+                var prod = await cont.Products.SingleAsync(prod => prod.Id == prodId);
+                Assert.Equal(OrderStatus.Canceled, order.Status);
+                Assert.Equal(30, prod.Stock);
+            }
+        }
+
+        [Fact]
+        public async Task CancelAsync_AndCompleteAsync_ConcurrentRequests_OnlyOneSucceeds()
+        {
+            int custId;
+            int prodId;
+            int orderId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                List<CreateOrderItemDto> ord = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = 5},
+                };
+                var order = await service.CreateAsync(custId, ord);
+                orderId = order.Id;
+            }
+
+            var task1 = Task.Run(async () =>
+            {
+                {
+                    using var actingContext = CreateContext();
+                    OrderService service = new(actingContext);
+
+                    await service.CancelAsync(orderId);
+                }
+            });
+
+            var task2 = Task.Run(async () =>
+            {
+                {
+                    using var actingContext = CreateContext();
+                    OrderService service = new(actingContext);
+
+                    await service.CompleteAsync(orderId);
+                }
+            });
+
+            await Assert.ThrowsAsync<DomainException>(async () => await Task.WhenAll(task1, task2));
+
+            {
+                using var cont = CreateContext();
+                var order = await cont.Orders.SingleAsync(order => order.Id == orderId);
+                var prod = await cont.Products.SingleAsync(prod => prod.Id == prodId);
+
+
+                if (order.Status == OrderStatus.Canceled)
+                    Assert.Equal(30, prod.Stock);
+
+                else if (order.Status == OrderStatus.Done)
+                    Assert.Equal(25, prod.Stock);
+
+                else
+                    Assert.Fail("Unexpected order status");
             }
         }
     }

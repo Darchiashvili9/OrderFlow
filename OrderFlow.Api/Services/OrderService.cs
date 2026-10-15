@@ -94,14 +94,19 @@ namespace OrderFlow.Api.Services
 
         public async Task<Order?> CompleteAsync(int orderId)
         {
-            var order = await _context.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.Id == orderId);
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order is null)
                 return null;
 
-            order.Complete();
-            await _context.SaveChangesAsync();
+            var effectedRows = await _context.Orders
+                .Where(ord => ord.Id == orderId && ord.Status == OrderStatus.Pending)
+                .ExecuteUpdateAsync(o => o.SetProperty(ord => ord.Status, OrderStatus.Done));
 
+            if (effectedRows == 0)
+                throw new DomainException("Only pending orders can be Completed");
+
+            await _context.Entry(order).ReloadAsync();
             return order;
         }
 
@@ -117,23 +122,33 @@ namespace OrderFlow.Api.Services
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                var efectedRows = await _context.Orders
+                    .Where(ord => ord.Id == orderId && ord.Status == OrderStatus.Pending)
+                    .ExecuteUpdateAsync(ord => ord.SetProperty(o => o.Status, OrderStatus.Canceled));
+
+                if (efectedRows == 0)
+                    throw new DomainException("Only pending orders can be canceled");
+
                 foreach (var item in order.OrderItems)
                 {
-                    await _context.Products
+                    var affectedRows = await _context.Products
                         .Where(id => id.Id == item.ProductId)
                         .ExecuteUpdateAsync(prod => prod.SetProperty(p => p.Stock, p => p.Stock + item.Quantity));
+
+                    if (affectedRows != 1)
+                        throw new DomainException("Failed to restore product stock");
                 }
 
-                order.Cancel();
-                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return order;
             }
             catch
             {
                 await transaction.RollbackAsync();
                 throw;
             }
+
+            await _context.Entry(order).ReloadAsync();
+            return order;
         }
     }
 }
