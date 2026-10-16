@@ -67,7 +67,7 @@ namespace OrderFlow.Api.Services
                 if (prod is null)
                     return false;
 
-                else throw new ValidationException("restock exceeds stock limit");
+                else throw new DomainException("restock exceeds stock limit");
             }
         }
     }
