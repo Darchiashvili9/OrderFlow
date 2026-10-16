@@ -54,5 +54,15 @@ namespace OrderFlow.Api.Controllers
             else return NoContent();
         }
 
+        [HttpPost("{id}/restock")]
+        public async Task<ActionResult> ReStock(int id, RestockRequestDto req)
+        {
+            var hasChanged = await _service.ReStockAsync(id, req.Quantity);
+
+            if (!hasChanged)
+                return NotFound();
+            else return NoContent();
+        }
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrderFlow.Api.Data;
+using OrderFlow.Api.Exceptions;
 using OrderFlow.Api.Models;
 using System.Collections;
 
@@ -46,6 +47,28 @@ namespace OrderFlow.Api.Services
             product.ChangePrice(newPrice);
             await _dbContext.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> ReStockAsync(int id, int quantity)
+        {
+            if (quantity < 1)
+                throw new ValidationException("quantity is less than 1");
+
+            var effectedRows = await _dbContext.Products
+                .Where(prod => prod.Id == id && (int.MaxValue - quantity) >= prod.Stock)
+                .ExecuteUpdateAsync(set => set.SetProperty(prop => prop.Stock, prop => prop.Stock + quantity));
+
+            if (effectedRows == 1)
+                return true;
+            else
+            {
+                var prod = await _dbContext.Products.FindAsync(id);
+
+                if (prod is null)
+                    return false;
+
+                else throw new ValidationException("restock exceeds stock limit");
+            }
         }
     }
 }

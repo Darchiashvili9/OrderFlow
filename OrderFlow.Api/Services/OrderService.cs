@@ -29,8 +29,9 @@ namespace OrderFlow.Api.Services
                 {
                     ProductId = group.Key,
                     Quantity = group.Sum(q => q.Quantity)
-
-                }).ToList();
+                })
+                .OrderBy(prod => prod.ProductId)
+                .ToList();
 
             var productIds = groupedList.Select(item => item.ProductId).Distinct().ToList();
 
