@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using OrderFlow.Api.Common;
 using OrderFlow.Api.Data;
 using OrderFlow.Api.DTOs;
 using OrderFlow.Api.Exceptions;
@@ -85,12 +87,40 @@ namespace OrderFlow.Api.Services
                 .FirstOrDefaultAsync(o => o.Id == orderId);
         }
 
-        public async Task<List<Order>> GetAllAsync()
+        public async Task<PagedResult<Order>> GetAllAsync(int page, int pageSize, string? search)
         {
-            return await _context.Orders
-                .Include(items => items.OrderItems)
+
+            if (page < 1 || pageSize < 1 || pageSize > 100)
+                throw new ValidationException("Invalid pagination parameters.");
+
+            long offset = ((long)page - 1) * pageSize;
+
+            if (offset > int.MaxValue)
+                throw new ValidationException("Pagination offset is too large.");
+
+            IQueryable<Order> query = _context.Orders;
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(ord => ord.Customer.Name.Contains(search));
+
+            var totalCount = await query.CountAsync();
+            var totalPages = 0;
+
+            if (totalCount % pageSize > 0)
+                totalPages = totalCount / pageSize + 1;
+            else totalPages = totalCount / pageSize;
+
+            var res = await query
+                .Include(o => o.OrderItems)
+                .OrderByDescending(o => o.OrderDate)
+                .ThenByDescending(o => o.Id)
+                .Skip((int)offset)
+                .Take(pageSize)
                 .AsNoTracking()
                 .ToListAsync();
+
+
+            return new PagedResult<Order>(res, page, pageSize, totalCount, totalPages);
         }
 
         public async Task<Order?> CompleteAsync(int orderId)

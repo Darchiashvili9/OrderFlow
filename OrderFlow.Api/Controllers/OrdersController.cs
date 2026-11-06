@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OrderFlow.Api.Common;
 using OrderFlow.Api.DTOs;
 using OrderFlow.Api.Services;
 
@@ -50,10 +51,10 @@ namespace OrderFlow.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<OrderDto>>> GetAll()
+        public async Task<ActionResult<PagedResult<OrderDto>>> GetAll([FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var list = await _service.GetAllAsync();
-            var orderDto = list.Select(
+            var list = await _service.GetAllAsync(page, pageSize, search);
+            List<OrderDto> orderDto = list.Items.Select(
                 o => new OrderDto(
                     o.Id,
                     o.CustomerId,
@@ -64,7 +65,7 @@ namespace OrderFlow.Api.Controllers
                             item.Quantity,
                             item.UnitPrice)).ToList())).ToList();
 
-            return Ok(orderDto);
+            return Ok(new PagedResult<OrderDto>(orderDto, list.TotalCount, list.Page, list.PageSize, list.TotalPages));
         }
 
         [HttpPut("{id}/complete")]
