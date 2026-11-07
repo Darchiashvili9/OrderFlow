@@ -89,14 +89,7 @@ namespace OrderFlow.Api.Services
 
         public async Task<PagedResult<Order>> GetAllAsync(int page, int pageSize, string? search)
         {
-
-            if (page < 1 || pageSize < 1 || pageSize > 100)
-                throw new ValidationException("Invalid pagination parameters.");
-
-            long offset = ((long)page - 1) * pageSize;
-
-            if (offset > int.MaxValue)
-                throw new ValidationException("Pagination offset is too large.");
+            var offset = PaginationHelper.CalculateOffset(page, pageSize);
 
             IQueryable<Order> query = _context.Orders;
 
@@ -104,11 +97,7 @@ namespace OrderFlow.Api.Services
                 query = query.Where(ord => ord.Customer.Name.Contains(search));
 
             var totalCount = await query.CountAsync();
-            var totalPages = 0;
-
-            if (totalCount % pageSize > 0)
-                totalPages = totalCount / pageSize + 1;
-            else totalPages = totalCount / pageSize;
+            var totalPages = PaginationHelper.CalculateTotalPages(totalCount, pageSize);
 
             var res = await query
                 .Include(o => o.OrderItems)
@@ -118,7 +107,6 @@ namespace OrderFlow.Api.Services
                 .Take(pageSize)
                 .AsNoTracking()
                 .ToListAsync();
-
 
             return new PagedResult<Order>(res, page, pageSize, totalCount, totalPages);
         }

@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OrderFlow.Api.Common;
 using OrderFlow.Api.Data;
 using OrderFlow.Api.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace OrderFlow.Api.Services
 {
@@ -30,9 +32,29 @@ namespace OrderFlow.Api.Services
                 .FirstOrDefaultAsync(c => c.Id == customerId);
         }
 
-        public async Task<List<Customer>> GetAllAsync()
+        public async Task<PagedResult<Customer>> GetAllAsync(int page, int pageSize, string? search)
         {
-            return await _context.Customers.AsNoTracking().ToListAsync();
+            var offeset = PaginationHelper.CalculateOffset(page, pageSize);
+
+            IQueryable<Customer> query = _context.Customers;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim();
+                query = query.Where(custo => custo.Name.Contains(search));
+            }
+
+            var totalCount = await query.CountAsync();
+            var totalPges = PaginationHelper.CalculateTotalPages(totalCount, pageSize);
+
+            var res = await query
+                .OrderByDescending(custo => custo.Id)
+                .Skip(offeset)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResult<Customer>(res, totalCount, page, pageSize, totalPges);
         }
     }
 }

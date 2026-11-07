@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OrderFlow.Api.Common;
 using OrderFlow.Api.Data;
 using OrderFlow.Api.Exceptions;
 using OrderFlow.Api.Models;
@@ -30,11 +31,28 @@ namespace OrderFlow.Api.Services
             return await _dbContext.Products.FirstOrDefaultAsync(item => item.Id == id);
         }
 
-        public async Task<List<Product>> GetAllAsync()
+        public async Task<PagedResult<Product>> GetAllAsync(int page, int pageSize, string? search)
         {
-            return await _dbContext.Products
-                .AsNoTracking()
+            var offset = PaginationHelper.CalculateOffset(page, pageSize);
+
+            IQueryable<Product> query = _dbContext.Products.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim();
+                query = query.Where(prod => prod.ProductName.Contains(search));
+            }
+
+            var totalCount = await query.CountAsync();
+            int totalPages = PaginationHelper.CalculateTotalPages(totalCount, pageSize);
+
+            var res = await query
+                .OrderByDescending(prod => prod.Id)
+                .Skip(offset)
+                .Take(pageSize)
                 .ToListAsync();
+
+            return new PagedResult<Product>(res, totalCount, page, pageSize, totalPages);
         }
 
         public async Task<bool> ChangePriceAsync(int id, decimal newPrice)
