@@ -108,7 +108,7 @@ namespace OrderFlow.Api.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            return new PagedResult<Order>(res, page, pageSize, totalCount, totalPages);
+            return new PagedResult<Order>(res, totalCount, page, pageSize, totalPages);
         }
 
         public async Task<Order?> CompleteAsync(int orderId)

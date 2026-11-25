@@ -514,5 +514,47 @@ namespace OrderFlow.Api.Tests.Models.Integration
                     Assert.Fail("Unexpected order status");
             }
         }
+        [Fact]
+        public async Task GetAllAsync_ThreeOrdersAndPageSizeTwo_ReturnsCorrectPagingMetadata()
+        {
+            int custId;
+            int prodId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                List<CreateOrderItemDto> items = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = 5},
+                };
+                await service.CreateAsync(custId, items);
+                await service.CreateAsync(custId, items);
+                await service.CreateAsync(custId, items);
+            }
+
+            {
+                using var cont = CreateContext();
+                var service = new OrderService(cont);
+
+                var list = await service.GetAllAsync(page: 1, pageSize: 2, search: null);
+
+                Assert.Equal(2, list.Items.Count);
+                Assert.Equal(3, list.TotalCount);
+                Assert.Equal(1, list.Page);
+                Assert.Equal(2, list.PageSize);
+                Assert.Equal(2, list.TotalPages);
+            }
+        }
     }
 }
