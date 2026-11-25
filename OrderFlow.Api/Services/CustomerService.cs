@@ -17,7 +17,7 @@ namespace OrderFlow.Api.Services
 
         public async Task<Customer> CreateAsync(string name, string email, string address)
         {
-            Customer newCustomer = new(name, email, address);
+            Customer newCustomer = new(name, address, email);
 
             _context.Customers.Add(newCustomer);
             await _context.SaveChangesAsync();
