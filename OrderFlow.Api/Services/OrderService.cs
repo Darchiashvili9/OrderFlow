@@ -19,6 +19,12 @@ namespace OrderFlow.Api.Services
 
         public async Task<Order> CreateAsync(int customerId, List<CreateOrderItemDto> list)
         {
+            if (list is null || list.Count == 0)
+                throw new ValidationException("An order needs at least one item.");
+
+            if (list.Any(item => item.Quantity < 1 || item.ProductId < 1))
+                throw new ValidationException("Every item needs a product id and a quantity of at least 1.");
+
             var customer = await _context.Customers.FindAsync(customerId);
             if (customer is null)
                 throw new NotFoundException($"Customer with ID {customerId} was not found.");

@@ -55,7 +55,7 @@ namespace OrderFlow.Api.Tests.Models.Integration
         {
             using var context = CreateContext();
             OrderService service = new(context);
-            await Assert.ThrowsAsync<NotFoundException>(async () => await service.CreateAsync(99999, []));
+            await Assert.ThrowsAsync<NotFoundException>(async () => await service.CreateAsync(99999, [new CreateOrderItemDto() { Quantity = 3, ProductId = 9999 }]));
         }
 
         [Fact]
@@ -556,5 +556,69 @@ namespace OrderFlow.Api.Tests.Models.Integration
                 Assert.Equal(2, list.TotalPages);
             }
         }
+
+        [Fact]
+        public async Task CreateAsync_EmptyItems_ThrowsValidationException()
+        {
+            int custId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                context.Customers.Add(cust);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(custId, []));
+            }
+
+            {
+                using var cont = CreateContext();
+                Assert.Empty(await cont.Orders.ToListAsync());
+            }
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public async Task CreateAsync_NonPositiveQuantity_ThrowsValidationException(int quantity)
+        {
+            int custId;
+            int prodId;
+            {
+                using var context = CreateContext();
+                Customer cust = new("testName", "Deutschland", "testMail@mail.de");
+                Product prod = new("testProduct", 30, 50);
+                context.Customers.Add(cust);
+                context.Products.Add(prod);
+                await context.SaveChangesAsync();
+                custId = cust.Id;
+                prodId = prod.Id;
+            }
+
+            {
+                using var actingContext = CreateContext();
+                OrderService service = new(actingContext);
+
+                List<CreateOrderItemDto> items = new()
+                {
+                    new CreateOrderItemDto() {ProductId = prodId, Quantity = quantity},
+                };
+                await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(custId, items));
+            }
+            {
+                using var cont = CreateContext();
+                var product = await cont.Products.SingleAsync();
+                var order = await cont.Orders.FirstOrDefaultAsync();
+                Assert.Equal(30, product.Stock);
+                Assert.Null(order);
+            }
+        }
+
+
     }
 }
