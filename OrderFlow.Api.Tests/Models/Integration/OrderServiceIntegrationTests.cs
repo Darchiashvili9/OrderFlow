@@ -1,39 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OrderFlow.Api.Data;
+﻿using Microsoft.EntityFrameworkCore;
 using OrderFlow.Api.DTOs;
 using OrderFlow.Api.Exceptions;
 using OrderFlow.Api.Models;
 using OrderFlow.Api.Services;
-using System.Security.Cryptography;
+using OrderFlow.Api.Tests.Infrastructure;
 
 namespace OrderFlow.Api.Tests.Models.Integration
 {
-    public class OrderServiceIntegrationTests
+    public class OrderServiceIntegrationTests : DatabaseTestBase
     {
-        private readonly DbContextOptions<OrderFlowDbContext> _options;
-
-        public OrderServiceIntegrationTests()
-        {
-            var connectionString = @"Server=(localdb)\MSSQLLocalDB;Database=OrderFlowTestDb;Trusted_Connection=True";
-            var optionsBuilder = new DbContextOptionsBuilder<OrderFlowDbContext>();
-            optionsBuilder.UseSqlServer(connectionString);
-            _options = optionsBuilder.Options;
-            ResetDatabase();
-        }
-
-        private OrderFlowDbContext CreateContext()
-        {
-            return new OrderFlowDbContext(_options);
-        }
-
-        private void ResetDatabase()
-        {
-            using var context = CreateContext();
-            context.Database.EnsureDeleted();
-            context.Database.Migrate();
-        }
-
         [Fact]
         public async Task CreateAsync_ValidOrder_CreatesOrder()
         {
